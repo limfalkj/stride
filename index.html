@@ -300,4 +300,105 @@ renderWeeks();renderRaces();renderSkipStats();renderBlockInfo();
  renderElevation();renderWeeks();renderCalendar();
 })();
 
+
+// v1.2: independent date-specific workout type and workout steps.
+(function(){
+  data.dayWorkouts ||= {};
+  const options=[
+    ['easy','Lugn löpning'],['friday','Lugn distans'],['quality','Intervaller / tröskel'],
+    ['strides','Lugn löpning + strides'],['long','Långpass'],['hills','Backintervaller'],
+    ['legs','Benstyrka'],['upper','Överkropp / bål'],['mobility','Yoga / rörlighet'],['rest','Vila']
+  ];
+  data.templates.strides ||= [
+    {name:'Lugn löpning',prescription:'6–7 km lugnt, Z2'},
+    {name:'Stegringar / strides',prescription:'20 sek',repeat:5,rest:'40–60 sek gång/jogg',pace:'Snabbt men avslappnat'},
+    {name:'Nedjogg',prescription:'Valfritt, lugnt'}
+  ];
+  const basePlanned=planned,baseTemplateType=templateType,baseStrengthType=strengthType,baseSessionKind=sessionKind;
+  const isStrength=t=>t==='legs'||t==='upper'||t==='mobility'||String(t).startsWith('custom_');
+  const typeName=t=>options.find(o=>o[0]===t)?.[1]||data.customStrength?.[t]?.name||'Eget pass';
+  function chosenType(date){return data.dayWorkouts[date]?.type||null}
+  templateType=function(date){return chosenType(date)||baseTemplateType(date)};
+  planned=function(date){
+    const p=basePlanned(date),type=chosenType(date);
+    if(!type)return p;
+    const steps=stepsFor(date);
+    p.title=data.dayWorkouts[date].title||typeName(type);
+    p.desc=steps.map(stepText).join(' · ')||'Inga steg';
+    p.day=type==='rest'?6:isStrength(type)?(type==='mobility'?3:1):type==='quality'||type==='hills'||type==='strides'?2:type==='long'?5:type==='friday'?4:0;
+    p.km=null;
+    p.zone=isStrength(type)?'RPE / styrka':type==='rest'?'–':type==='hills'?'RPE 7, backe':type==='quality'?'Tröskel, individuellt mål':'Lugn ansträngning / Z2';
+    p.target=type==='rest'?'–':type==='quality'?'Aktuell tröskelfart':type==='strides'?'Lugnt tempo + snabba avslappnade stegringar':type==='hills'?'Ansträngning, ej km-tempo':isStrength(type)?'Ej tempobaserat':'Individuell lätt distansfart';
+    p.customStrength=isStrength(type)?type:null;
+    return p;
+  };
+  strengthType=function(p){if(p.customStrength)return p.customStrength;return baseStrengthType(p)};
+  sessionKind=function(p){if(p.customStrength)return p.customStrength==='mobility'?'mobility':'strength';return baseSessionKind(p)};
+  // Every date can have its own type, and the saved steps are a snapshot independent of master.
+  function switchWorkout(date){
+    const select=document.getElementById('dayWorkoutType');if(!select)return;
+    const type=select.value,customTitle=document.getElementById('dayWorkoutTitle').value.trim();
+    const current=chosenType(date)||baseTemplateType(date);
+    if(type!==current&&getResult(date)?.saved&&!confirm('Det finns ett loggat resultat för dagen. Byt pass och behåll den gamla resultatloggen tills du själv ändrar eller tar bort den?'))return;
+    const snapshot=copySteps(data.templates[type]||defaultTemplates[type]||[]);
+    data.dayWorkouts[date]={type,title:customTitle||typeName(type),originalType:data.dayWorkouts[date]?.originalType||baseTemplateType(date)};
+    data.passOverrides[date]=snapshot;
+    // A change in workout type should not retain stale category flags.
+    if(data.hillDates)delete data.hillDates[date];
+    if(data.customStrengthDates)delete data.customStrengthDates[date];
+    persist();renderWeeks();renderStrength();openPass(date);
+  }
+  window.switchWorkout=switchWorkout;
+  window.resetWorkoutType=function(date){
+    if(!confirm('Återställ dagens pass till ordinarie veckoplan? Loggade resultat raderas inte.'))return;
+    delete data.dayWorkouts[date];delete data.passOverrides[date];
+    persist();renderWeeks();renderStrength();openPass(date);
+  };
+  window.saveWorkoutTitle=function(date){
+    if(!data.dayWorkouts[date]){alert('Välj först ett pass att byta till.');return}
+    data.dayWorkouts[date].title=document.getElementById('dayWorkoutTitle').value.trim()||typeName(data.dayWorkouts[date].type);
+    persist();renderWeeks();openPass(date);
+  };
+  const oldOpen=openPass;
+  openPass=function(date){
+    oldOpen(date);
+    const ed=document.getElementById('passEditor');if(!ed)return;
+    const type=templateType(date),own=chosenType(date),p=planned(date);
+    const box=document.createElement('div');box.className='steps';box.style.borderLeft='4px solid #d78940';
+    const all=[...options,...Object.keys(data.customStrength||{}).map(k=>[k,typeName(k)])];
+    box.innerHTML=`<div class="row space"><strong>Byt hela passet – endast ${date}</strong><span class="chip">${own?'Eget pass för dagen':'Standardpass'}</span></div>
+      <p class="muted">Välj en annan passtyp eller behåll typen och justera bara övningar, intervaller och distans via ”Ändra övningar / intervaller”. Masterpass ändras inte.</p>
+      <div class="feature-grid"><div><label>Passtyp</label><select id="dayWorkoutType">${all.map(([k,v])=>`<option value="${safe(k)}" ${k===type?'selected':''}>${safe(v)}</option>`).join('')}</select></div>
+      <div><label>Rubrik för just detta pass</label><input id="dayWorkoutTitle" value="${safe(own?data.dayWorkouts[date].title:p.title)}" placeholder="Ex. 6–7 km lugnt + 5×20s strides"></div></div>
+      <div class="row" style="margin-top:12px"><button class="primary" onclick="switchWorkout('${date}')">Byt pass på datumet</button>${own?`<button class="secondary" onclick="saveWorkoutTitle('${date}')">Spara rubrik</button><button class="secondary" onclick="resetWorkoutType('${date}')">Återställ standardpass</button>`:''}</div>`;
+    ed.querySelector('.row.space')?.after(box);
+    // When a date has a strides workout, the existing interval editor logs each stride.
+  };
+  // Keep workout type when saving, and never change master templates.
+  const oldSave=saveSession;
+  saveSession=function(date){
+    oldSave(date);
+    const type=chosenType(date),r=getResult(date);
+    if(type&&r){r.dayWorkoutType=type;r.dayWorkoutTitle=data.dayWorkouts[date].title;
+      if(type==='rest')r.type='rest';
+      else if(isStrength(type))r.type='strength';
+      else r.type='run';
+      if(type==='strides'||type==='quality'||type==='hills')r.intervals=readIntervals()||r.intervals;
+      persist();renderProgress();renderStrength();}
+  };
+  // Strength tab should list a changed day's strength type, even when originally a run day.
+  const oldRenderExercises=renderExercises;
+  renderExercises=function(){
+    const d=document.getElementById('strengthDate')?.value, t=chosenType(d);
+    if(t&&isStrength(t)){
+      const sel=document.getElementById('workoutSelect');
+      if(sel&&!sel.querySelector(`option[value="${t}"]`))sel.insertAdjacentHTML('beforeend',`<option value="${safe(t)}">${safe(typeName(t))}</option>`);
+      sel.value=t;
+    }
+    oldRenderExercises();
+  };
+  // Show a custom title in the overview and calendar, and date-specific steps in their details.
+  renderWeeks();renderCalendar();persist();
+})();
+
 </script></body></html>
