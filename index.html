@@ -401,4 +401,159 @@ renderWeeks();renderRaces();renderSkipStats();renderBlockInfo();
   renderWeeks();renderCalendar();persist();
 })();
 
+
+// v1.3: status-first workflow and single-day workout customization.
+(function(){
+ const style=document.createElement('style');style.textContent=`
+ .status-panel{border:1px solid #b7d5c5;background:#f0f7f2;border-radius:14px;padding:16px;margin:12px 0 18px}
+ .status-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+ .status-option{background:#fff;border:1px solid #cbded2;border-radius:10px;padding:12px 8px;font-size:13px;font-weight:700;color:#305c49;text-align:center}
+ .status-option.selected{background:#236c57;border-color:#236c57;color:#fff}
+ .status-body[hidden],.status-switch[hidden]{display:none!important}
+ .status-confirm{margin:10px 0;color:#176246;font-weight:700}
+ .stride-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#205b49;color:#fff;padding:13px 19px;border-radius:12px;box-shadow:0 8px 25px #183b3030;z-index:9999;max-width:92vw;text-align:center;font-weight:700}
+ .day.done{background:#e7f6eb!important;border-color:#5ca97b!important}.monthcell.completed{background:#e5f4e9!important}
+ .detailday.logged{border-color:#67ad83;background:#eff9f1}
+ @media(max-width:720px){.shell{padding:12px 11px 90px}.card{padding:14px}.status-panel{padding:12px}.status-options{grid-template-columns:1fr;gap:6px}.status-option{padding:12px}.detailday{padding:12px}.feature-grid{grid-template-columns:1fr}.session-strength{grid-template-columns:minmax(95px,2fr) repeat(3,minmax(44px,1fr))}.session-strength input{font-size:13px;padding:6px}.intervalgrid{grid-template-columns:65px 1fr 70px 1fr}.monthcell{min-height:66px}.week{grid-template-columns:1fr}.day{min-height:0}.day .log-area{margin-top:4px}.day p{display:none}}
+ `;document.head.appendChild(style);
+ data.sessionStatuses ||= {};
+ function statusOf(date){return data.sessionStatuses[date]||(getSkip(date)?'skipped':getResult(date)?.saved?(data.dayWorkouts?.[date]?'other':'completed'):null)}
+ function toast(message){document.querySelector('.stride-toast')?.remove();const t=document.createElement('div');t.className='stride-toast';t.setAttribute('role','status');t.textContent=message;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
+ window.chooseStrideStatus=function(date,status){
+   const prior=statusOf(date);if(status==='skipped'&&getResult(date)?.saved){alert('Ta först bort den sparade resultatloggen innan passet markeras som ej genomfört.');return}
+   data.sessionStatuses[date]=status;persist();showStrideStatus(date,status);
+ };
+ function showStrideStatus(date,status){
+   const editor=document.getElementById('passEditor');if(!editor)return;
+   editor.querySelectorAll('.status-option').forEach(b=>{const active=b.dataset.status===status;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active))});
+   const body=editor.querySelector('#strideResultBody'),swap=editor.querySelector('#strideSwapBody'),skip=editor.querySelector('#strideSkipBody');
+   if(body)body.hidden=!(status==='completed'||status==='other');
+   if(swap)swap.hidden=status!=='other';
+   if(skip)skip.hidden=status!=='skipped';
+ }
+ const priorOpen=openPass;
+ openPass=function(date){
+   priorOpen(date);
+   const editor=document.getElementById('passEditor');if(!editor)return;
+   const heading=editor.querySelector('h2');if(!heading)return;
+   const header=heading.closest('.row.space');
+   const status=document.createElement('div');status.className='status-panel';
+   status.innerHTML=`<strong>Status på passet</strong><div class="status-options" role="group" aria-label="Status på passet">${[['completed','Genomfört'],['skipped','Ej genomfört'],['other','Genomfört annat pass']].map(([id,label])=>`<button type="button" class="status-option" data-status="${id}" onclick="chooseStrideStatus('${date}','${id}')">${label}</button>`).join('')}</div>`;
+   header?.after(status);
+   const swap=Array.from(editor.querySelectorAll('.steps')).find(el=>el.textContent.includes('Byt hela passet'));
+   const skip=editor.querySelector('.skip-box');
+   const body=document.createElement('div');body.id='strideResultBody';body.className='status-body';
+   // Collect the entire normal editor, including terrain, exercises and save buttons.
+   const children=Array.from(editor.children).filter(el=>el!==header&&el!==status&&el!==swap&&el!==skip);
+   children.forEach(el=>body.appendChild(el));editor.appendChild(body);
+   const swapWrap=document.createElement('div');swapWrap.id='strideSwapBody';swapWrap.className='status-switch';
+   if(swap){swapWrap.appendChild(swap);editor.insertBefore(swapWrap,body);
+     const typeSelect=swap.querySelector('#dayWorkoutType'),titleInput=swap.querySelector('#dayWorkoutTitle');
+     if(typeSelect&&titleInput){typeSelect.addEventListener('change',()=>{
+       const names=Object.fromEntries([...typeSelect.options].map(o=>[o.value,o.textContent]));titleInput.value=names[typeSelect.value]||'Eget pass';
+     });}
+   }
+   const skipWrap=document.createElement('div');skipWrap.id='strideSkipBody';skipWrap.className='status-body';if(skip){skipWrap.appendChild(skip);editor.insertBefore(skipWrap,body)}
+   // All runs (including easy, long and replaced strength days) can record elevation.
+   const p=planned(date),kind=sessionKind(p);
+   if((kind==='run'||kind==='quality')&&!body.querySelector('#exElevation')){
+     const extra=data.sessionExtras?.[date]||{};const elev=document.createElement('div');elev.className='steps';
+     elev.innerHTML=`<label for="exElevation">Höjdmeter (m) – hela löppasset</label><input id="exElevation" type="number" min="0" step="1" value="${safe(extra.elevation??'')}">`;
+     body.insertBefore(elev,body.firstChild);
+   }
+   showStrideStatus(date,statusOf(date));
+   editor.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ const oldSave=saveSession;
+ saveSession=function(date){
+   const elevation=document.getElementById('exElevation')?.value;
+   oldSave(date);
+   if(elevation!==undefined){data.sessionExtras ||= {};data.sessionExtras[date] ||= {};data.sessionExtras[date].elevation=elevation===''?null:Number(elevation)}
+   data.sessionStatuses[date]=data.dayWorkouts?.[date]?'other':'completed';
+   persist();renderWeeks();renderCalendar();if(typeof renderElevation==='function')renderElevation();
+   document.getElementById('passEditor').style.display='none';
+   toast('Passet sparat och markerat som genomfört');
+   navigate('calendar');window.scrollTo({top:0,behavior:'smooth'});
+ };
+ const oldSkip=saveSkip;saveSkip=function(date){oldSkip(date);data.sessionStatuses[date]='skipped';persist();document.getElementById('passEditor').style.display='none';toast('Passet markerat som ej genomfört');navigate('calendar');window.scrollTo({top:0,behavior:'smooth'})};
+ const oldRemoveSkip=removeSkip;removeSkip=function(date){oldRemoveSkip(date);delete data.sessionStatuses[date];persist()};
+ const oldDelete=deleteSession;deleteSession=function(date){oldDelete(date);delete data.sessionStatuses[date];persist()};
+ const oldRender=renderCalendar;renderCalendar=function(){oldRender();document.querySelectorAll('.detailday').forEach(el=>{const d=el.getAttribute('onclick')?.match(/'(\d{4}-\d{2}-\d{2})'/)?.[1];if(d&&getResult(d)?.saved)el.classList.add('logged')})};
+ renderWeeks();
+})();
+
+// v1.4: allow workouts on scheduled rest days and rest on scheduled workout days.
+(function(){
+ const oldSwitch=window.switchWorkout;
+ window.switchWorkout=function(date){
+   const selected=document.getElementById('dayWorkoutType')?.value;
+   if(selected==='rest'){
+     if(getResult(date)?.saved&&!confirm('Dagen har ett sparat träningsresultat. Vill du ta bort resultatet och göra dagen till vilodag?'))return;
+     if(getResult(date)?.saved){delete data.sessionResults[date];delete data.done[date];}
+     if(data.skipped)delete data.skipped[date];
+     if(data.sessionStatuses)delete data.sessionStatuses[date];
+     const original=data.dayWorkouts?.[date]?.originalType||null;
+     data.dayWorkouts ||= {};
+     data.dayWorkouts[date]={type:'rest',title:'Vila',originalType:original};
+     data.passOverrides ||= {};data.passOverrides[date]=[];
+     if(data.hillDates)delete data.hillDates[date];
+     if(data.customStrengthDates)delete data.customStrengthDates[date];
+     persist();renderWeeks();renderStrength();renderProgress();if(typeof renderForecast==='function')renderForecast();
+     openPass(date);return;
+   }
+   if(!selected)return;
+   oldSwitch(date);
+   // A workout replacing a rest day is a planned workout until the user logs it.
+   if(data.sessionStatuses?.[date]==='skipped'){delete data.sessionStatuses[date];persist()}
+ };
+ const priorOpen=openPass;
+ openPass=function(date){
+   priorOpen(date);
+   const p=planned(date),isRest=p.day===6,editor=document.getElementById('passEditor');
+   if(!editor)return;
+   const status=editor.querySelector('.status-panel');
+   const swap=editor.querySelector('#strideSwapBody');
+   const body=editor.querySelector('#strideResultBody');
+   const skip=editor.querySelector('#strideSkipBody');
+   if(isRest){
+     if(status){
+       status.querySelector('strong').textContent='Vilodag – vill du träna istället?';
+       status.querySelectorAll('.status-option').forEach(btn=>{
+         btn.hidden=btn.dataset.status!=='other';
+         if(btn.dataset.status==='other')btn.textContent='Lägg till träningspass';
+       });
+     }
+     if(swap)swap.hidden=true;
+     if(body)body.hidden=true;
+     if(skip)skip.hidden=true;
+     const note=document.createElement('p');note.className='muted';note.textContent='Dagen är vilodag. Välj ”Lägg till träningspass” för att välja ett pass. Masterplanen ändras inte.';
+     status?.appendChild(note);
+   }
+   const selector=editor.querySelector('#dayWorkoutType');
+   const title=editor.querySelector('#dayWorkoutTitle');
+   if(selector&&title){
+     selector.addEventListener('change',()=>{
+       if(selector.value==='rest')title.value='Vila';
+     });
+   }
+   // The rest-day selector is also available from every training day.
+   if(swap){const msg=document.createElement('p');msg.className='muted';msg.textContent='Du kan även välja Vila. Då ändras bara detta datum och ingen träning registreras.';swap.appendChild(msg)}
+ };
+ const previousChoose=window.chooseStrideStatus;
+ window.chooseStrideStatus=function(date,status){
+   if(planned(date).day===6){
+     if(status!=='other')return;
+     const editor=document.getElementById('passEditor');
+     const swap=editor?.querySelector('#strideSwapBody');
+     if(swap)swap.hidden=false;
+     editor?.querySelectorAll('.status-option').forEach(btn=>btn.classList.toggle('selected',btn.dataset.status==='other'));
+     swap?.scrollIntoView({behavior:'smooth',block:'nearest'});
+     return;
+   }
+   previousChoose(date,status);
+ };
+ const css=document.createElement('style');css.textContent='.status-option[hidden]{display:none!important}.day[data-kind="rest"]{opacity:1;border-top:4px solid #b2c2b8}.monthcell[data-kind="rest"]{border-left:3px solid #b2c2b8}@media(max-width:720px){#strideSwapBody .feature-grid{grid-template-columns:1fr}#strideSwapBody select,#strideSwapBody input{width:100%}}';document.head.appendChild(css);
+ renderWeeks();renderCalendar();
+})();
+
 </script></body></html>
