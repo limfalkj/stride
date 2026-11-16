@@ -9,7 +9,7 @@
 <section id="calendar" class="section"><h1>Träningskalender</h1><p class="muted">Välj månad för överblick eller vecka för passdetaljer. Tryck på ett pass för att registrera resultat.</p><div class="card"><div class="row space"><div class="row"><button class="secondary" onclick="movePeriod(-1)">←</button><strong id="weekLabel"></strong><button class="secondary" onclick="movePeriod(1)">→</button></div><div class="row"><button id="monthBtn" class="secondary" onclick="setCalendarMode('month')">Månad</button><button id="weekBtn" class="secondary" onclick="setCalendarMode('week')">Vecka</button></div></div><div id="calendarWeek" style="margin-top:16px"></div></div><div id="passEditor" class="card" style="display:none"></div></section><section id="strength" class="section"><h1>Styrka och rörlighet</h1><p class="muted">Logga vikter och repetitioner per övning. Torsdag varieras mellan överkropp och rörlighet.</p><div class="card"><div class="row space"><h2>Passbibliotek</h2><select id="workoutSelect" onchange="renderExercises()"><option value="legs">Tisdag · Benstyrka</option><option value="upper">Torsdag · Överkropp/bål</option><option value="mobility">Torsdag · Rörlighet</option></select></div><label>Datum för passet</label><input type="date" id="strengthDate"><div id="exerciseList"></div><div class="row" style="margin-top:16px"><button class="primary" onclick="saveStrength()">Spara träningspass</button><span id="strengthNotice" class="muted"></span></div></div><div class="card"><h2>Styrkeprogression</h2><p class="muted">Högsta registrerade vikt per övning och kalendervecka. Välj övning för att se historiken.</p><label for="progressExercise">Övning</label><select id="progressExercise" onchange="renderStrengthProgress()"></select><div id="strengthProgress"></div></div><div class="card"><h2>Senaste styrkepassen</h2><div id="strengthHistory"></div></div></section>
 <section id="progress" class="section"><h1>Progression</h1><p class="muted">Manuellt loggade löppass och framtida Garmin-import visas i samma datamodell.</p><div class="grid"><div class="card"><div class="muted">Loggade kilometer</div><div class="stat" id="totalKm">0</div></div><div class="card"><div class="muted">Registrerade pass</div><div class="stat" id="totalRuns">0</div></div><div class="card"><div class="muted">Senaste snittpuls</div><div class="stat" id="lastHr">—</div></div></div><div class="two"><div class="card"><h2>Löpvolym per vecka</h2><div class="bargraph" id="kmGraph"></div><p class="muted" style="margin-top:30px">Visar de senaste åtta veckorna.</p></div><div class="card"><h2>Logga löpning</h2><div class="row"><div><label>Datum</label><input type="date" id="runDate"></div><div><label>Distans (km)</label><input type="number" id="runKm" step="0.1" min="0" style="width:115px"></div><div><label>Tid (minuter)</label><input type="number" id="runMinutes" step="0.1" min="0" style="width:115px"></div><div><label>Snittpuls (bpm)</label><input type="number" id="runHr" min="0" style="width:115px"></div></div><button class="primary" style="margin-top:15px" onclick="addRun()">Spara löppass</button></div></div><div class="card"><h2>Registrerade aktiviteter</h2><div id="runHistory"></div></div></section>
 <section id="goals" class="section"><h1>Mål och tester</h1><p class="muted">Följ rekord och använd testlopp för att kalibrera rekommenderade farter.</p><div class="two"><div class="card"><h2>Personliga rekord</h2><div id="pbs"></div><button class="primary" onclick="savePBs()" style="margin-top:15px">Spara rekord</button></div><div class="card"><h2>Planerade testpass</h2><div class="listrow"><div><strong>5 km test</strong><div class="muted">Januari 2027 · Jämför med kommande tester</div></div></div><div class="listrow"><div><strong>10 km test</strong><div class="muted">Mars 2027 · Uppdatera halvmaraprognosen</div></div></div><div class="listrow"><div><strong>Halvmaraton</strong><div class="muted">21 april 2027 · Målet är sub 1:45</div></div></div><p class="hint">Pulszoner och träningsfarter bör kalibreras mot verkliga tester. Ingen uppskattad puls presenteras som personlig fakta.</p></div></div><div class="card"><div class="row space"><h2>Veckovis prestationsprognos</h2><span class="pill">Beta</span></div><div id="raceForecast"></div><div id="forecastHistory"></div><p class="hint">Indikativa uppskattningar, inte Garmins eller Stravas prognos. Sammanställs veckovis utifrån loggade tröskelpass och tester. Lugna pass räknas inte som tävlingsinsatser. Prognosen visas först med tillräcklig relevant data och är osäker utan tester.</p></div><div class="card"><h2>Dina kommande lopp</h2><div id="goalsRaces"></div></div></section>
-<section id="settings" class="section"><div class="card" id="cloudSyncCard" style="border-left:4px solid #2c8274"><h2>Google Sheets · synk</h2><p class="muted">Samma träningshistorik på mobil och dator. Inloggning sker hos Google. Ingen Apps Script-deploy behövs. Använd endast ditt eget konto.</p><label>Google OAuth Client ID (Web application)</label><input id="googleClientId" style="width:100%" placeholder="Google OAuth Client ID" autocomplete="off"><div class="row" style="margin-top:12px"><button class="primary" id="googleLogin">Anslut Google</button><button class="secondary" id="googlePull" disabled>Hämta från Sheets</button><button class="secondary" id="googlePush" disabled>Spara till Sheets</button><button class="secondary" id="googleLogout" disabled>Koppla från</button></div><p id="googleSyncStatus" class="hint" role="status" aria-live="polite">Inte ansluten. Lokal lagring fortsätter fungera.</p><p class="muted">Första gången: anslut Google, välj Hämta från Sheets om arket redan innehåller data, annars Spara till Sheets. När enheten är synkad försöker appen spara nya ändringar automatiskt medan du är inloggad och online. Kontrollera alltid synkstatus. Vid konflikt stoppas sparningen så du kan välja vilken version du vill behålla. Exportera JSON-backup innan första synkningen.</p></div><h1>Inställningar och Garmin</h1><div class="card"><h2>Garmin-integration · Förberedd</h2><p>Appens aktiviteter har fälten <code>source</code>, <code>externalId</code>, <code>startTime</code>, <code>distanceKm</code>, <code>durationSec</code>, <code>avgHr</code> och <code>samples</code>. En framtida serverintegration kan fylla på samma aktivitetslista utan att kalender, rekord eller grafer behöver byggas om.</p><p class="hint">Ingen automatisk Garmin-synk är aktiv. För flera användare krävs en separat, godkänd Garmin-integration och säker serverlagring. Klistra aldrig in Garmin-nycklar i denna app.</p></div><div class="card"><h2>Export och backup</h2><p class="muted">Den här första versionen sparar data i webbläsarens lokala lagring. Exportera regelbundet för att inte förlora dina loggar.</p><div class="row"><button class="primary" onclick="exportData()">Exportera all data (JSON)</button><label style="margin:0" class="secondary">Importera backup <input type="file" accept="application/json" onchange="importData(event)" style="width:180px"></label></div></div></section>
+<section id="settings" class="section"><div class="card" id="cloudSyncCard" style="border-left:4px solid #2c8274"><h2>Google Sheets · synk</h2><p class="muted">Samma träningshistorik på mobil och dator. Inloggning sker hos Google. Ingen Apps Script-deploy behövs. Använd endast ditt eget konto.</p><label>Google OAuth Client ID (Web application)</label><input id="googleClientId" style="width:100%" placeholder="Google OAuth Client ID" autocomplete="off"><div class="row" style="margin-top:12px"><button class="primary" id="googleLogin">Anslut Google</button><button class="secondary" id="googlePull" disabled>Hämta från Sheets</button><button class="secondary" id="googlePush" disabled>Spara till Sheets</button><button class="secondary" id="googleLogout" disabled>Koppla från</button></div><p id="googleSyncStatus" class="hint" role="status" aria-live="polite">Inte ansluten. Lokal lagring fortsätter fungera.</p><p class="muted">Automatisk synk: efter Google-inloggning hämtas nyare data om inga lokala ändringar väntar. Sparade pass laddas upp automatiskt och appen kontrollerar molnet när du återvänder till fliken. Vid konflikt stoppas synken utan att skriva över data. Google-inloggning behöver göras igen efter omladdning. Behåll JSON-backup.</p></div><h1>Inställningar och Garmin</h1><div class="card"><h2>Garmin-integration · Förberedd</h2><p>Appens aktiviteter har fälten <code>source</code>, <code>externalId</code>, <code>startTime</code>, <code>distanceKm</code>, <code>durationSec</code>, <code>avgHr</code> och <code>samples</code>. En framtida serverintegration kan fylla på samma aktivitetslista utan att kalender, rekord eller grafer behöver byggas om.</p><p class="hint">Ingen automatisk Garmin-synk är aktiv. För flera användare krävs en separat, godkänd Garmin-integration och säker serverlagring. Klistra aldrig in Garmin-nycklar i denna app.</p></div><div class="card"><h2>Export och backup</h2><p class="muted">Den här första versionen sparar data i webbläsarens lokala lagring. Exportera regelbundet för att inte förlora dina loggar.</p><div class="row"><button class="primary" onclick="exportData()">Exportera all data (JSON)</button><label style="margin:0" class="secondary">Importera backup <input type="file" accept="application/json" onchange="importData(event)" style="width:180px"></label></div></div></section>
 <div class="footer">Stride · Lokal prototyp v1.0 · Ingen server, inget konto och ingen Garmin-anslutning ännu.</div></div><script>
 let calendarMode='month', calendarAnchor=new Date();calendarAnchor.setHours(12,0,0,0);const KEY='stride_v1';const defaults={done:{},runs:[],strength:[],pbs:{'Halvmaraton':'1:47:00'},races:[{name:'Halvmaraton',date:'2027-04-21',goal:'Sub 1:45'},{name:'50 km trail',date:'2027-06-01',goal:'Uthållighet · datum preliminärt'},{name:'20 km trail',date:'2027-07-03',goal:'Trailfart · datum preliminärt'},{name:'OCC',date:'2027-08-27',goal:'Om startplats tilldelas'}]};let data;try{data={...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){data=structuredClone(defaults)}function persist(){localStorage.setItem(KEY,JSON.stringify(data))}const weekdays=['Mån','Tis','Ons','Tors','Fre','Lör','Sön'];const plan=[['Lugn löpning','5–7 km'],['Benstyrka','40–50 min'],['Intervaller / tröskel','Anpassa efter fas'],['Överkropp / yoga','Lugnt, variera'],['Lugn löpning','6–10 km'],['Långpass','Bygg gradvis'],['Vila','Återhämtning']];let weekOffset=0;function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}function monday(offset=0){let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7+offset*7);return d}function weekCards(offset=0){let start=monday(offset);return plan.map((p,i)=>{let d=new Date(start);d.setDate(start.getDate()+i);let date=iso(d),done=!!data.done[date];return `<div class="day ${done?'done':''}"><strong>${weekdays[i]} <span class="muted">${d.getDate()}/${d.getMonth()+1}</span></strong><div class="kind">${p[0]}</div><p>${p[1]}</p>${i<6?`<label class="small"><input type="checkbox" ${done?'checked':''} onchange="toggleDone('${date}',this.checked)"> Genomfört</label>`:''}</div>`}).join('')}function toggleDone(date,v){data.done[date]=v;persist();renderWeeks()}function renderWeeks(){document.getElementById('week').innerHTML=weekCards(0);document.getElementById('calendarWeek').innerHTML=weekCards(weekOffset);let s=monday(weekOffset),e=new Date(s);e.setDate(s.getDate()+6);document.getElementById('weekLabel').textContent=`${s.getDate()}/${s.getMonth()+1} – ${e.getDate()}/${e.getMonth()+1}`;let start=monday(),count=0;for(let i=0;i<6;i++){let d=new Date(start);d.setDate(start.getDate()+i);if(data.done[iso(d)])count++}document.getElementById('doneCount').textContent=count+'/6 klara'}function moveWeek(n){weekOffset+=n;renderWeeks()}const tabs=[['overview','Översikt'],['calendar','Kalender'],['strength','Styrka'],['progress','Progression'],['goals','Mål & rekord'],['settings','Inställningar']];function navigate(id){document.querySelectorAll('.section').forEach(e=>e.classList.toggle('active',e.id===id));document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.dataset.id===id));if(id==='progress')renderProgress();if(id==='strength')renderStrength();scrollTo(0,0)}document.getElementById('nav').innerHTML=tabs.map(t=>`<button class="tab ${t[0]==='overview'?'active':''}" data-id="${t[0]}" onclick="navigate('${t[0]}')">${t[1]}</button>`).join('');const exercises={legs:[['Knäböj / benpress','3 × 6–8'],['Rumänska marklyft','3 × 8'],['Bulgariska split squats','2 × 8/ben'],['Step-ups','2 × 10/ben'],['Tåhävningar','3 × 12–15']],upper:[['Sittande rodd','3 × 10'],['Latsdrag','3 × 10'],['Armhävningar / bröstpress','2 × 8–12'],['Axelpress','2 × 10'],['Dead bug','2 × 10/sida'],['Sidoplanka','2 × 30 sek/sida']],mobility:[['90/90 höftrotation','2 min'],['Höftböjarstretch','2 × 45 sek/sida'],['Fotled mot vägg','2 × 10/sida'],['Bröstryggsrotation','2 × 8/sida'],['Downward dog','2 min'],['Lugn andning','3 min']]};function renderExercises(){let type=document.getElementById('workoutSelect').value;document.getElementById('exerciseList').innerHTML=exercises[type].map((e,i)=>`<div class="exercise"><div><strong class="small">${e[0]}</strong><div class="muted">${e[1]}</div></div><input type="number" placeholder="kg" step="0.5" data-ex="${i}" data-field="kg" ${type==='mobility'?'disabled':''}><input type="number" placeholder="reps" data-ex="${i}" data-field="reps" ${type==='mobility'?'disabled':''}><input type="number" placeholder="RPE" min="1" max="10" data-ex="${i}" data-field="rpe" ${type==='mobility'?'disabled':''}></div>`).join('')}function saveStrength(){let type=document.getElementById('workoutSelect').value;let entries=exercises[type].map((e,i)=>{let o={name:e[0],prescription:e[1]};for(let f of ['kg','reps','rpe']){let v=document.querySelector(`[data-ex="${i}"][data-field="${f}"]`).value;o[f]=v?Number(v):null}return o});data.strength.unshift({date:iso(new Date()),type,entries});persist();renderStrength();document.getElementById('strengthNotice').textContent='Passet sparat'}function renderStrength(){document.getElementById('strengthHistory').innerHTML=data.strength.slice(0,10).map(x=>`<div class="listrow"><div><strong>${x.date} · ${x.type==='legs'?'Ben':x.type==='upper'?'Överkropp':'Rörlighet'}</strong><div class="muted">${x.entries.filter(e=>e.kg).map(e=>e.name+': '+e.kg+' kg').join(' · ')||'Genomfört pass'}</div></div></div>`).join('')||'<p class="muted">Inga pass registrerade ännu.</p>'}function addRun(){let date=document.getElementById('runDate').value,km=Number(document.getElementById('runKm').value),min=Number(document.getElementById('runMinutes').value),hr=Number(document.getElementById('runHr').value);if(!date||km<=0||min<=0){alert('Ange datum, distans och tid.');return}data.runs.unshift({source:'manual',externalId:null,startTime:date+'T12:00:00',distanceKm:km,durationSec:min*60,avgHr:hr||null,samples:[]});persist();renderProgress()}function weekStart(date){let d=new Date(date+'T12:00:00');d.setDate(d.getDate()-(d.getDay()+6)%7);return iso(d)}function renderProgress(){let runs=data.runs;document.getElementById('totalKm').textContent=runs.reduce((s,r)=>s+r.distanceKm,0).toFixed(1)+' km';document.getElementById('totalRuns').textContent=runs.length;document.getElementById('lastHr').textContent=(runs.find(r=>r.avgHr)?.avgHr||'—')+' bpm';let weeks=Array.from({length:8},(_,i)=>{let d=monday(i-7);return iso(d)});let vals=weeks.map(w=>runs.filter(r=>weekStart(r.startTime.slice(0,10))===w).reduce((s,r)=>s+r.distanceKm,0));let max=Math.max(...vals,1);document.getElementById('kmGraph').innerHTML=vals.map((v,i)=>`<div style="height:${Math.max(3,v/max*100)}%" title="${v.toFixed(1)} km"><small>${new Date(weeks[i]+'T12:00:00').getDate()}/${new Date(weeks[i]+'T12:00:00').getMonth()+1}</small></div>`).join('');document.getElementById('runHistory').innerHTML=runs.slice(0,20).map(r=>`<div class="listrow"><div><strong>${r.startTime.slice(0,10)} · ${r.distanceKm.toFixed(1)} km</strong><div class="muted">${(r.durationSec/60).toFixed(0)} min · ${(r.durationSec/60/r.distanceKm).toFixed(2)} min/km · ${r.avgHr||'—'} bpm · ${r.source}</div></div></div>`).join('')||'<p class="muted">Inga löppass ännu. Lägg in ett pass för att börja se grafer.</p>'}function renderPBs(){document.getElementById('pbs').innerHTML=['1 km','5 km','10 km','Halvmaraton','Maraton','50 km'].map(d=>`<div class="listrow" style="align-items:center"><strong>${d}</strong><input aria-label="${d}" data-pb="${d}" placeholder="hh:mm:ss" value="${data.pbs[d]||''}" style="width:120px"></div>`).join('')}function savePBs(){document.querySelectorAll('[data-pb]').forEach(e=>data.pbs[e.dataset.pb]=e.value);persist();alert('Rekorden har sparats')}function renderRaces(){let html=data.races.map(r=>`<div class="listrow"><div><strong>${r.name}</strong><div class="muted">${r.date} · ${r.goal}</div></div></div>`).join('');document.getElementById('races').innerHTML=html;document.getElementById('goalsRaces').innerHTML=html}function exportData(){let b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='stride-backup-'+iso(new Date())+'.json';a.click();URL.revokeObjectURL(a.href)}async function importData(ev){let f=ev.target.files[0];if(!f)return;try{let obj=JSON.parse(await f.text());if(!Array.isArray(obj.runs)||!Array.isArray(obj.strength))throw Error('Felaktigt format');data={...defaults,...obj};persist();location.reload()}catch(e){alert('Kunde inte importera backup: '+e.message)}}document.getElementById('runDate').value=iso(new Date());document.getElementById('countdown').textContent=Math.max(0,Math.ceil((new Date('2027-04-21T12:00:00')-new Date())/86400000));renderWeeks();renderRaces();renderExercises();renderStrength();renderPBs();renderProgress();
 
@@ -566,11 +566,13 @@ const SCOPE='https://www.googleapis.com/auth/spreadsheets';
 const META_KEY='stride_google_sync_meta_v1';
 const CLIENT_KEY='stride_google_client_id_v1';
 const el=id=>document.getElementById(id);
-let accessToken='',tokenClient=null,connected=false,busy=false,timer=null,dirty=false;
+let accessToken='',tokenClient=null,connected=false,busy=false,timer=null,dirty=false,conflict=false,lastCheck=0;
 let meta;try{meta=JSON.parse(localStorage.getItem(META_KEY)||'{}')}catch(e){meta={}}
-const status=(message,isError=false)=>{el('googleSyncStatus').textContent=message;el('googleSyncStatus').style.color=isError?'#a04f32':'#315d50'};
+const badge=document.createElement('span');badge.id='strideCloudBadge';badge.setAttribute('role','status');badge.setAttribute('aria-live','polite');badge.style.cssText='display:inline-flex;align-items:center;border-radius:18px;padding:6px 11px;font-size:12px;font-weight:700;background:#e8eeeb;color:#52675d;margin:6px 0';badge.textContent='Moln: inte ansluten';document.querySelector('header')?.appendChild(badge);
+const status=(message,isError=false)=>{el('googleSyncStatus').textContent=message;el('googleSyncStatus').style.color=isError?'#a04f32':'#315d50';badge.textContent=isError?'Moln: kontroll behövs':!connected?'Moln: inte ansluten':busy?'Moln: synkar…':dirty?'Moln: väntar på synk':'Moln: synkad';badge.style.background=isError?'#fff0e8':!connected?'#e8eeeb':dirty?'#fff4dc':'#e1f3e8';badge.style.color=isError?'#99452d':!connected?'#52675d':dirty?'#805a13':'#226047'};
 const updateButtons=()=>{for(const id of ['googlePull','googlePush','googleLogout'])el(id).disabled=!connected||busy;el('googleLogin').disabled=busy};
 const localHash=()=>JSON.stringify(data);
+const hasLocalChanges=()=>dirty||Boolean(meta.lastLocal&&meta.lastLocal!==localHash())||(!meta.revision&&(Object.keys(data.sessionResults||{}).length>0||(data.runs||[]).length>0||(data.strength||[]).length>0||Object.values(data.done||{}).some(Boolean)));
 const makeRevision=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2);
 const sheetRange=s=>encodeURIComponent("'"+s+"'!A1:Z10000");
 async function request(method,path,body){
@@ -654,36 +656,81 @@ const HEADERS={
  PersonalBests:['pb_id','user_id','distance_km','best_time_sec','date','source_session_id','notes','updated_at'],
  Settings:['user_id','setting_key','setting_value','updated_at']};
 function saveMeta(){localStorage.setItem(META_KEY,JSON.stringify(meta))}
+// Cloud is authoritative only when the current device has no pending edits.
+// Never replace unsynced local work silently.
+function renderAfterPull(){
+ try{renderWeeks();renderCalendar();renderStrength();renderProgress();renderRaces();renderPBs();renderForecast();renderSkipStats();renderBlockInfo();if(typeof renderElevation==='function')renderElevation();if(typeof paceTarget==='function')paceTarget()}catch(e){console.warn('Stride UI refresh:',e)}
+}
+function applyRemote(remote){
+ data={...defaults,...remote.data};
+ oldPersist(); // bypass the sync-triggering wrapper: this is not a new local edit
+ meta.revision=remote.revision;meta.lastLocal=localHash();meta.lastSynced=Date.now();saveMeta();
+ dirty=false;conflict=false;renderAfterPull();
+ status('Synkad · hämtade senaste historiken '+new Date().toLocaleTimeString('sv-SE'));
+}
+async function checkCloud({automatic=true}={}){
+ if(!connected||busy||!navigator.onLine)return;
+ busy=true;updateButtons();status('Kontrollerar Google Sheets…');
+ try{
+  const remote=await readSnapshot();lastCheck=Date.now();
+  if(!remote){
+   status('Ansluten. Ingen molnhistorik ännu. Välj Spara till Sheets för första uppladdningen.');return;
+  }
+  const localChanged=hasLocalChanges();
+  if(remote.revision===meta.revision){
+   conflict=false;
+   if(localChanged){dirty=true;status('Lokala ändringar väntar på uppladdning');}
+   else{dirty=false;meta.lastSynced=Date.now();saveMeta();status('Synkad · '+new Date().toLocaleTimeString('sv-SE'));}
+   return;
+  }
+  if(!localChanged){applyRemote(remote);return;}
+  conflict=true;dirty=true;
+  status('Konflikt: molnet och denna enhet har olika ändringar. Ingen data har skrivits över. Exportera backup och välj manuellt vilken version som ska behållas.',true);
+ }catch(e){status('Kunde inte kontrollera molnet: '+e.message+'. Lokala data finns kvar.',true)}
+ finally{busy=false;updateButtons();if(connected&&dirty&&!conflict&&meta.revision)scheduleSync()}
+}
 async function syncPush(force=false){
  if(busy||!connected)return;busy=true;updateButtons();
  const snapshot=JSON.parse(localHash());
  try{
   status('Kontrollerar ändringar i Google Sheets…');const remote=await readSnapshot();
-  if(remote&&remote.revision!==meta.revision&&!force){dirty=true;status('Konflikt: en annan enhet har sparat nyare data. Välj Hämta från Sheets eller Spara till Sheets för att välja vilken version som ska behållas.',true);return}
-  const rev=makeRevision();await publishSnapshot(snapshot,rev);meta.revision=rev;meta.lastSynced=Date.now();meta.lastLocal=JSON.stringify(snapshot);saveMeta();dirty=localHash()!==JSON.stringify(snapshot);
-  status('Synkat till Google Sheets '+new Date().toLocaleTimeString('sv-SE')+(dirty?' · nya ändringar väntar':' · klart'));
- }catch(e){dirty=true;status('Synk misslyckades eller tabellvyer kunde inte uppdateras: '+e.message+' · Din lokala data är kvar. Kontrollera Sheets innan du försöker igen.',true)}finally{busy=false;updateButtons();if(dirty&&connected&&meta.revision&&localHash()!==JSON.stringify(snapshot)&&!timer)scheduleSync()}
+  if(remote&&remote.revision!==meta.revision&&!force){conflict=true;dirty=true;status('Konflikt: nyare molnversion finns. Exportera backup och välj manuellt Hämta eller Spara till Sheets.',true);return}
+  if(!remote&&!force&&meta.revision){conflict=true;dirty=true;status('Molnhistorik saknas. Ingen automatisk överskrivning gjord.',true);return}
+  const rev=makeRevision();await publishSnapshot(snapshot,rev);
+  meta.revision=rev;meta.lastSynced=Date.now();meta.lastLocal=JSON.stringify(snapshot);saveMeta();
+  dirty=localHash()!==JSON.stringify(snapshot);conflict=false;
+  status('Synkad · sparat till Google Sheets '+new Date().toLocaleTimeString('sv-SE')+(dirty?' · nya ändringar väntar':''));
+ }catch(e){dirty=true;status('Synk misslyckades: '+e.message+'. Lokala data finns kvar. Kontrollera Sheets innan nytt försök.',true)}
+ finally{busy=false;updateButtons();if(dirty&&!conflict&&connected&&meta.revision)scheduleSync()}
 }
 async function syncPull(){
- if(busy||!connected)return;busy=true;updateButtons();
+ if(busy||!connected)return;
+ if(hasLocalChanges()&&!confirm('Den här enheten har ändringar som inte är synkade. Hämta från Sheets kan ersätta dem. Exportera JSON-backup först. Fortsätta?'))return;
+ busy=true;updateButtons();
  try{
-  const remote=await readSnapshot();if(!remote){status('Google Sheet är tomt. Klicka Spara till Sheets för att ladda upp din lokala historik.');return}
-  if(!confirm('Ersätta lokala Stride-data med data från Google Sheets? Exportera gärna en JSON-backup först.'))return;
-  data={...defaults,...remote.data};persist();meta.revision=remote.revision;meta.lastLocal=localHash();saveMeta();dirty=false;status('Historik hämtad. Laddar om appen…');location.reload();
+  const remote=await readSnapshot();if(!remote){status('Google Sheet saknar historik. Ingen lokal data har ändrats.');return}
+  if(!confirm('Ersätta denna enhets data med Google Sheets-versionen?'))return;
+  applyRemote(remote);
  }catch(e){status('Kunde inte hämta: '+e.message,true)}finally{busy=false;updateButtons()}
 }
-function scheduleSync(){if(timer)clearTimeout(timer);if(!connected||!meta.revision)return;timer=setTimeout(()=>{timer=null;if(!busy&&dirty)syncPush(false)},1800)}
+function scheduleSync(){
+ if(timer)clearTimeout(timer);
+ if(!connected||!meta.revision||conflict)return;
+ timer=setTimeout(()=>{timer=null;if(!busy&&dirty&&navigator.onLine)syncPush(false)},1800)
+}
 const oldPersist=persist;
-persist=function(){oldPersist();dirty=true;scheduleSync()};
+persist=function(){oldPersist();dirty=true;status(connected?'Ändringar sparade lokalt · synkar snart':'Sparat lokalt · anslut Google för molnsynk');scheduleSync()};
+// Detect offline edits made before the page was reloaded.
+dirty=Boolean(meta.lastLocal&&meta.lastLocal!==localHash());
 async function connect(){
  const clientId=el('googleClientId').value.trim();
- if(!/^\d+-[\w-]+\.apps\.googleusercontent\.com$/.test(clientId)){status('Ange ett giltigt OAuth Client ID från Google Cloud.',true);return}
+ if(!/^\d+-[\w-]+\.apps\.googleusercontent\.com$/.test(clientId)){status('Ange ett giltigt OAuth Client ID.',true);return}
  if(!window.google?.accounts?.oauth2){status('Google-inloggningen kunde inte laddas. Kontrollera internetanslutningen.',true);return}
  localStorage.setItem(CLIENT_KEY,clientId);
  tokenClient=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:SCOPE,callback:async response=>{
   if(response.error){status('Google-inloggning misslyckades: '+response.error,true);return}
   accessToken=response.access_token;connected=true;updateButtons();
-  try{const remote=await readSnapshot();if(remote){if(!meta.revision){status('Google Sheet innehåller data. Klicka Hämta från Sheets för att återställa, eller Spara till Sheets för att skriva över.');}else if(meta.revision!==remote.revision){status('En annan enhet har ändrat historiken. Välj Hämta från Sheets eller Spara till Sheets.',true)}else{status('Ansluten. Kontrollera att historiken är uppdaterad innan du loggar nya pass.');if(dirty)scheduleSync()}}else status('Ansluten. Klicka Spara till Sheets för första uppladdningen.')}catch(e){status('Ansluten, men kunde inte läsa kalkylarket: '+e.message,true)}
+  await checkCloud();
  }});
  tokenClient.requestAccessToken({prompt:'consent'});
 }
@@ -692,8 +739,111 @@ el('googleLogin').addEventListener('click',connect);
 el('googlePull').addEventListener('click',syncPull);
 el('googlePush').addEventListener('click',async()=>{if(!confirm('Spara denna enhets ALLA Stride-data till Google Sheets? Detta kan ersätta ändringar från en annan enhet. Exportera backup först.'))return;await syncPush(true)});
 el('googleLogout').addEventListener('click',()=>{if(accessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(accessToken,()=>{});accessToken='';connected=false;updateButtons();status('Frånkopplad. Din lokala historik är kvar.')});
-window.addEventListener('online',scheduleSync);
-window.addEventListener('beforeunload',()=>{if(dirty&&connected)console.warn('Stride har osynkade ändringar.')});
+window.addEventListener('online',()=>{if(connected)checkCloud();else status('Online · anslut Google för att synka')});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&connected&&Date.now()-lastCheck>15000)checkCloud()});
+window.addEventListener('focus',()=>{if(connected&&Date.now()-lastCheck>15000)checkCloud()});
+// Google OAuth tokens are intentionally not stored persistently. Reconnect after reload.
+status(dirty?'Lokala ändringar väntar · anslut Google':'Inte ansluten · anslut Google för synk');
+window.addEventListener('beforeunload',()=>{if(dirty)console.warn('Stride har osynkade ändringar.')});
 updateButtons();
 })();
+
+// Stride v2.1: mobile calendar and additional independent activities per day.
+(function(){
+ const style=document.createElement('style');style.textContent=`
+ #calendar .card,#calendarWeek,.monthgrid,.detailweek{min-width:0;max-width:100%}
+ .monthgrid{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;width:100%}
+ .monthgrid>strong{min-width:0;font-size:11px}
+ .monthcell{min-width:0;width:100%;overflow:hidden;overflow-wrap:anywhere;word-break:normal;padding:5px 3px;min-height:76px}
+ .monthcell .dot{font-size:10px;line-height:1.25;overflow-wrap:anywhere}
+ .monthcell .smallnote,.monthcell .wk,.monthcell .ws{font-size:9px;overflow-wrap:anywhere}
+ .extra-count{display:block;color:#256b60;font-weight:750;font-size:10px;margin-top:4px}
+ .extra-entry{border:1px solid #d9e5df;background:#f5faf7;border-radius:10px;padding:11px;margin:8px 0}
+ .extra-entry .row{align-items:center}
+ #extraEditor{border:1px solid #bcd5ca;border-radius:12px;padding:15px;margin:12px 0;background:#f7fbf8}
+ #extraEditor input,#extraEditor select,#extraEditor textarea{width:100%;min-width:0}
+ .extra-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .extra-form>div{min-width:0}
+ .extra-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+ @media(max-width:720px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .shell{width:100%;max-width:100%;padding:14px 10px 90px}
+  .card{padding:13px;margin-bottom:12px;min-width:0}
+  .monthgrid{gap:2px}
+  .monthcell{padding:4px 2px;min-height:67px;border-radius:6px}
+  .monthcell .dot{font-size:9px;line-height:1.15;margin-top:3px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .monthcell .smallnote{display:none!important}
+  .monthcell .ws{font-size:8px;padding:1px 2px}
+  .monthcell .skipnote{font-size:8px}
+  .monthcell strong{font-size:12px}
+  .extra-form{grid-template-columns:1fr 1fr}
+  .detailday{min-width:0}
+  #passEditor{overflow-wrap:anywhere}
+  #calendar .row.space{gap:8px}
+  #calendar .row.space .row{gap:6px}
+  #weekLabel{font-size:14px}
+  #calendar .secondary{padding:8px}
+ }
+ @media(max-width:390px){.monthcell .dot{font-size:8px}.monthcell strong{font-size:11px}.monthcell{min-height:60px}}
+ `;document.head.appendChild(style);
+ data.extraSessions ||= {};
+ const extras=date=>(data.extraSessions||{})[date]||[];
+ const titleFor=e=>e.title||({run:'Lugn löpning',quality:'Intervaller',strength:'Styrka',mobility:'Yoga/rörlighet',other:'Annat pass'}[e.kind]||'Extra pass');
+ function makeId(){return 'extra-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}
+ function editExtra(date,id){
+  const item=extras(date).find(e=>e.id===id)||{id:'',kind:'run',title:'',distanceKm:'',durationMin:'',avgHr:'',maxHr:'',elevation:'',notes:'',entries:[]};
+  const root=document.getElementById('extraEditor');if(!root)return;
+  root.dataset.date=date;root.dataset.id=id||'';
+  root.innerHTML=`<h3 style="margin:0 0 8px">${id?'Redigera extra pass':'Lägg till ytterligare pass'}</h3>
+  <div class="extra-form"><div><label>Typ av pass</label><select id="extraKind" onchange="extraKindChanged()">${[['run','Lugn löpning'],['quality','Intervaller/tröskel'],['strength','Styrka'],['mobility','Yoga/rörlighet'],['other','Annat']].map(([v,l])=>`<option value="${v}" ${item.kind===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div><label>Rubrik</label><input id="extraTitle" placeholder="t.ex. 4 km lugnt" value="${safe(item.title||'')}"></div>
+  <div><label>Distans (km)</label><input id="extraKm" type="number" min="0" step="0.01" value="${safe(item.distanceKm??'')}"></div>
+  <div><label>Tid (min)</label><input id="extraMin" type="number" min="0" step="0.1" value="${safe(item.durationMin??'')}"></div>
+  <div><label>Snittpuls</label><input id="extraHr" type="number" min="0" max="240" value="${safe(item.avgHr??'')}"></div>
+  <div><label>Maxpuls</label><input id="extraMaxHr" type="number" min="0" max="240" value="${safe(item.maxHr??'')}"></div>
+  <div><label>Höjdmeter (m)</label><input id="extraElev" type="number" min="0" value="${safe(item.elevation??'')}"></div>
+  <div><label>Upplevd ansträngning (RPE)</label><input id="extraRpe" type="number" min="1" max="10" value="${safe(item.rpe??'')}"></div></div>
+  <label>Kommentarer / övningar / intervaller</label><textarea id="extraNotes" rows="3" style="width:100%">${safe(item.notes||'')}</textarea>
+  <div id="extraStrengthFields" style="display:${item.kind==='strength'?'block':'none'}"><label>Styrkeövningar (en per rad: Övning; kg; reps; RPE)</label><textarea id="extraStrengthRows" rows="4" style="width:100%" placeholder="Knäböj; 55; 8; 7">${safe((item.entries||[]).map(e=>[e.name,e.kg??'',e.reps??'',e.rpe??''].join('; ')).join('\n'))}</textarea></div>
+  <div class="extra-actions"><button class="primary" onclick="saveExtraSession()">Spara extra pass</button><button class="secondary" onclick="document.getElementById('extraEditor').innerHTML='';">Avbryt</button></div>`;
+  root.scrollIntoView({behavior:'smooth',block:'nearest'});
+ }
+ window.extraKindChanged=function(){const k=document.getElementById('extraKind').value;document.getElementById('extraStrengthFields').style.display=k==='strength'?'block':'none';const title=document.getElementById('extraTitle');if(!title.value.trim())title.placeholder=titleFor({kind:k})};
+ window.editExtraSession=editExtra;
+ window.saveExtraSession=function(){const root=document.getElementById('extraEditor'),date=root.dataset.date,id=root.dataset.id;
+  const v=k=>document.getElementById(k).value.trim(),num=k=>v(k)===''?null:Number(v(k));
+  const fields=['extraKm','extraMin','extraHr','extraMaxHr','extraElev','extraRpe'];if(fields.some(k=>num(k)!==null&&(!Number.isFinite(num(k))||num(k)<0))){alert('Kontrollera siffervärdena');return}
+  const kind=v('extraKind');const entries=kind==='strength'?v('extraStrengthRows').split('\n').filter(s=>s.trim()).map(line=>{const [name,kg,reps,rpe]=line.split(';').map(s=>s.trim());return {name:name||'Övning',kg:kg===''?null:Number(kg),reps:reps===''?null:Number(reps),rpe:rpe===''?null:Number(rpe)}}):[];
+  if(entries.some(e=>!Number.isFinite(e.kg??0)||!Number.isFinite(e.reps??0)||!Number.isFinite(e.rpe??0))){alert('Kontrollera styrkeövningarna');return}
+  const obj={id:id||makeId(),date,kind,title:v('extraTitle')||titleFor({kind}),distanceKm:num('extraKm'),durationMin:num('extraMin'),avgHr:num('extraHr'),maxHr:num('extraMaxHr'),elevation:num('extraElev'),rpe:num('extraRpe'),notes:v('extraNotes'),entries,saved:true,updatedAt:new Date().toISOString()};
+  data.extraSessions[date]||=[];const i=data.extraSessions[date].findIndex(x=>x.id===obj.id);if(i>=0)data.extraSessions[date][i]=obj;else data.extraSessions[date].push(obj);
+  persist();renderWeeks();renderProgress();renderStrength();openPass(date);
+  const notice=document.getElementById('extraSavedNotice');if(notice)notice.textContent='Extra pass sparat';
+ };
+ window.deleteExtraSession=function(date,id){if(!confirm('Ta bort detta extra pass?'))return;data.extraSessions[date]=(data.extraSessions[date]||[]).filter(e=>e.id!==id);persist();renderWeeks();renderProgress();renderStrength();openPass(date)};
+ const oldOpen=openPass;openPass=function(date){oldOpen(date);const ed=document.getElementById('passEditor');if(!ed)return;
+  const block=document.createElement('div');block.className='steps';block.id='extraSessionsBlock';
+  block.innerHTML=`<div class="row space"><strong>Fler pass samma dag</strong><span class="pill">${extras(date).length} extra</span></div><p class="muted">Logga exempelvis löpning och styrka samma dag. Det planerade passet påverkas inte.</p><div id="extraSavedNotice" class="muted"></div>`+
+   extras(date).map(e=>`<div class="extra-entry"><div class="row space"><div><strong>${safe(titleFor(e))}</strong><div class="muted">${e.distanceKm??'–'} km · ${e.durationMin??'–'} min · ${e.avgHr??'–'} bpm${e.elevation!=null?' · '+e.elevation+' hm':''}</div></div><div class="row"><button class="secondary" onclick="editExtraSession('${date}','${safe(e.id)}')">Ändra</button><button class="secondary" onclick="deleteExtraSession('${date}','${safe(e.id)}')">Ta bort</button></div></div></div>`).join('')+
+   `<button class="secondary" onclick="editExtraSession('${date}','')">+ Lägg till pass</button><div id="extraEditor"></div>`;
+  ed.appendChild(block);
+ };
+ const oldCalendar=renderCalendar;renderCalendar=function(){oldCalendar();
+  document.querySelectorAll('#calendarWeek .monthcell,#calendarWeek .detailday').forEach(el=>{const date=dateFromEl(el);if(!date)return;const n=extras(date).length;if(!n)return;const s=document.createElement('span');s.className='extra-count';s.textContent='+'+n+' pass';el.appendChild(s)})
+ };
+ const oldCards=weekCards;weekCards=function(offset){let html=oldCards(offset);const start=monday(offset);const wrapper=document.createElement('div');wrapper.innerHTML=html;wrapper.querySelectorAll('.day').forEach((el,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const n=extras(iso(d)).length;if(n){const s=document.createElement('span');s.className='extra-count';s.textContent='+'+n+' extra pass';el.appendChild(s)}});return wrapper.innerHTML};
+ const oldProgress=renderProgress;renderProgress=function(){oldProgress();const extra=Object.values(data.extraSessions||{}).flat().filter(e=>['run','quality'].includes(e.kind)&&Number(e.distanceKm)>0);
+  if(!extra.length)return;const base=allRuns();const all=[...base,...extra.map(e=>({date:e.date,km:Number(e.distanceKm),min:Number(e.durationMin)||0,hr:e.avgHr}))];
+  document.getElementById('totalKm').textContent=all.reduce((s,e)=>s+Number(e.km||0),0).toFixed(1)+' km';document.getElementById('totalRuns').textContent=all.length;
+  const weeks=Array.from({length:8},(_,i)=>iso(monday(i-7)));const vals=weeks.map(w=>all.filter(e=>weekStart(e.date)===w).reduce((s,e)=>s+Number(e.km||0),0));const max=Math.max(1,...vals);
+  document.getElementById('kmGraph').innerHTML=vals.map((v,i)=>`<div style="height:${Math.max(3,v/max*100)}%" title="${v.toFixed(1)} km"><small>${weeks[i].slice(5)}</small></div>`).join('');
+  const hist=document.getElementById('runHistory');hist.innerHTML=all.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20).map(e=>`<div class="listrow"><div><strong>${safe(e.date)} · ${Number(e.km).toFixed(2)} km</strong><div class="muted">${e.min?formatPace(e.min*60/e.km)+' min/km · ':''}${e.hr||'–'} bpm</div></div></div>`).join('');
+ };
+ // Include secondary strength activities in existing progression without changing canonical records.
+ const oldStrengthProgress=renderStrengthProgress;renderStrengthProgress=function(){const original=data.sessionResults;const extended={...original};for(const [date,arr] of Object.entries(data.extraSessions||{}))for(const e of arr)if(e.kind==='strength')extended[date+'#'+e.id]={date,type:'strength',entries:e.entries||[]};data.sessionResults=extended;try{return oldStrengthProgress()}finally{data.sessionResults=original}};
+ const oldStrength=renderStrength;renderStrength=function(){oldStrength();const entries=Object.values(data.extraSessions||{}).flat().filter(e=>e.kind==='strength');if(entries.length){const root=document.getElementById('strengthHistory');root.insertAdjacentHTML('afterbegin',entries.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<div class="listrow"><div><strong>${safe(e.date)} · ${safe(titleFor(e))} (extra pass)</strong><div class="muted">${(e.entries||[]).map(x=>safe(x.name)+': '+(x.kg??'–')+' kg').join(' · ')}</div></div><button class="secondary" onclick="openPass('${e.date}')">Visa</button></div>`).join(''))}}
+ // Rerender with the patched views, preserving existing local storage and Google sync.
+ renderWeeks();renderProgress();renderStrength();
+})();
+
 </script></body></html>
