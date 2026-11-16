@@ -846,4 +846,84 @@ updateButtons();
  renderWeeks();renderProgress();renderStrength();
 })();
 
+
+// v4: type-specific extra-session editor, independent session IDs and master-safe copies.
+(function(){
+ const css=document.createElement('style');css.textContent=`
+ .extra-v4{background:#f8fbf9;border:1px solid #c9ddd2;border-radius:14px;padding:14px;margin-top:12px}
+ .extra-v4 .extra-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .extra-v4 .extra-form label{font-weight:600}.extra-v4 .extra-form input,.extra-v4 .extra-form select{width:100%;min-width:0}
+ .extra-v4 .extra-row{display:grid;grid-template-columns:minmax(110px,2fr) repeat(3,minmax(55px,1fr)) 35px;gap:6px;align-items:end;margin:8px 0}
+ .extra-v4 .extra-row input{width:100%;min-width:0;padding:8px 5px}
+ .extra-v4 .extra-row button{padding:9px 4px}
+ .extra-v4 .extra-rep{display:grid;grid-template-columns:40px 1fr 1fr;gap:8px;align-items:center;margin:8px 0}
+ .extra-v4 .extra-rep input{min-width:0;width:100%}
+ .extra-v4 h4{margin:16px 0 8px}.extra-v4 .extra-actions button{flex:1;min-width:125px}
+ @media(max-width:520px){.extra-v4{padding:11px}.extra-v4 .extra-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.extra-v4 .extra-row{grid-template-columns:minmax(90px,2fr) repeat(3,minmax(40px,1fr)) 28px;gap:3px}.extra-v4 .extra-row input{font-size:12px;padding:7px 3px}.extra-v4 .extra-row label{font-size:10px}.extra-v4 .extra-row button{padding:7px 2px}.extra-v4 .extra-actions{display:grid;grid-template-columns:1fr}}
+ `;document.head.appendChild(css);
+ const types=[['run','Lugn löpning / långpass'],['quality','Intervaller / tröskel'],['strength','Styrka'],['mobility','Yoga / rörlighet'],['other','Annan träning']];
+ let editing=null;
+ const byId=id=>document.getElementById(id);
+ const val=id=>byId(id)?.value.trim()||'';
+ const number=id=>val(id)===''?null:Number(val(id));
+ const esc=x=>safe(x??'');
+ const defaultTitle=k=>({run:'Lugn löpning',quality:'Intervallpass',strength:'Styrkepass',mobility:'Yoga / rörlighet',other:'Annan träning'}[k]||'Extra pass');
+ const makeExtraId=()=> 'extra-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+ function strengthTemplates(){return Object.entries(data.templates||{}).filter(([k])=>['legs','upper','mobility'].includes(k)||k.startsWith('custom_')).map(([k])=>[k,data.customStrength?.[k]?.name||({legs:'Benstyrka',upper:'Överkropp / bål',mobility:'Rörlighet'}[k]||k)])}
+ function normalizeEntry(e){return {name:e.name||'',exerciseId:e.exerciseId||'',prescription:e.prescription||'',kg:e.kg??'',reps:e.reps??'',rpe:e.rpe??''}}
+ function showFields(){
+  const k=val('v4Kind');if(!editing)return;
+  ['run','quality','strength','mobility','other'].forEach(t=>{const e=byId('v4-'+t);if(e)e.hidden=t!==k});
+  const templ=byId('v4Template');if(templ)templ.disabled=k!=='strength'&&k!=='mobility';
+  const title=byId('v4Title');if(title&&!title.value.trim())title.placeholder=defaultTitle(k);
+ }
+ function renderStrengthRows(){const out=byId('v4StrengthRows');if(!out||!editing)return;out.innerHTML=editing.entries.map((e,i)=>`<div class="extra-row"><div><label>Övning</label><input data-v4-name="${i}" value="${esc(e.name)}" placeholder="Övning"></div><div><label>Kg</label><input data-v4-kg="${i}" type="number" min="0" step="0.5" value="${esc(e.kg)}"></div><div><label>Reps</label><input data-v4-reps="${i}" type="number" min="0" value="${esc(e.reps)}"></div><div><label>RPE</label><input data-v4-rpe="${i}" type="number" min="1" max="10" value="${esc(e.rpe)}"></div><button class="secondary" type="button" aria-label="Ta bort övning" onclick="strideV4RemoveExercise(${i})">×</button></div>`).join('')}
+ function readStrengthRows(){if(!editing)return;editing.entries=editing.entries.map((e,i)=>({...e,name:val('missing')||byId('v4StrengthRows')?.querySelector(`[data-v4-name="${i}"]`)?.value.trim()||'',kg:byId('v4StrengthRows')?.querySelector(`[data-v4-kg="${i}"]`)?.value??'',reps:byId('v4StrengthRows')?.querySelector(`[data-v4-reps="${i}"]`)?.value??'',rpe:byId('v4StrengthRows')?.querySelector(`[data-v4-rpe="${i}"]`)?.value??''}))}
+ window.strideV4AddExercise=()=>{readStrengthRows();editing.entries.push(normalizeEntry({name:''}));renderStrengthRows()};
+ window.strideV4RemoveExercise=i=>{readStrengthRows();editing.entries.splice(i,1);renderStrengthRows()};
+ window.strideV4ApplyTemplate=()=>{const key=val('v4Template');if(!key)return;readStrengthRows();if(editing.entries.some(e=>e.name.trim())&&!confirm('Ersätta övningslistan för just detta pass med vald mall?'))return;editing.entries=(data.templates[key]||[]).map(normalizeEntry);editing.template=key;renderStrengthRows()};
+ function renderIntervals(){const out=byId('v4Intervals');if(!out||!editing)return;out.innerHTML=editing.intervals.map((x,i)=>`<div class="extra-rep"><strong>${i+1}</strong><div><label>Tempo (min:sek/km)</label><input data-v4-pace="${i}" placeholder="4:30" value="${esc(x.pace)}"></div><div><label>Snittpuls</label><input data-v4-ihr="${i}" type="number" min="0" max="240" value="${esc(x.hr)}"></div></div>`).join('')}
+ window.strideV4IntervalCount=()=>{if(!editing)return;const n=Math.min(40,Math.max(1,Number(val('v4IntervalCount'))||1));editing.intervals=Array.from({length:n},(_,i)=>editing.intervals[i]||{pace:'',hr:''});renderIntervals()};
+ window.strideV4KindChanged=showFields;
+ window.editExtraSession=function(date,id){
+  const item=(data.extraSessions?.[date]||[]).find(x=>x.id===id);
+  editing={date,id:id||'',entries:(item?.entries||[]).map(normalizeEntry),intervals:(item?.intervals||[]).map(x=>({...x}))};
+  const root=byId('extraEditor');if(!root)return;
+  const kind=item?.kind||'run';root.dataset.date=date;root.dataset.id=id||'';
+  root.innerHTML=`<div class="extra-v4"><div class="row space"><h3 style="margin:0">${id?'Ändra pass':'Lägg till pass'}</h3><span class="chip">${esc(date)}</span></div>
+  <div class="extra-form"><div><label>Typ av pass</label><select id="v4Kind" onchange="strideV4KindChanged()">${types.map(([k,n])=>`<option value="${k}" ${kind===k?'selected':''}>${n}</option>`).join('')}</select></div><div><label>Rubrik</label><input id="v4Title" value="${esc(item?.title||'')}" placeholder="${esc(defaultTitle(kind))}"></div></div>
+  <div id="v4-run"><div class="extra-form">${runFields(item)}</div></div>
+  <div id="v4-quality" hidden><div class="extra-form">${runFields(item)}</div><h4>Intervaller – varje repetition</h4><div class="row"><label for="v4IntervalCount">Antal intervaller</label><input id="v4IntervalCount" type="number" min="1" max="40" style="width:80px" value="${Math.max(1,editing.intervals.length||4)}" onchange="strideV4IntervalCount()"></div><div id="v4Intervals"></div></div>
+  <div id="v4-strength" hidden><div class="extra-form"><div><label>Välj styrkemall</label><select id="v4Template"><option value="">Välj mall</option>${strengthTemplates().map(([k,n])=>`<option value="${esc(k)}" ${item?.workoutType===k?'selected':''}>${esc(n)}</option>`).join('')}</select></div><div style="display:flex;align-items:end"><button class="secondary" type="button" onclick="strideV4ApplyTemplate()">Hämta övningar</button></div></div><h4>Övningar och resultat</h4><div id="v4StrengthRows"></div><button class="secondary" type="button" onclick="strideV4AddExercise()">+ Lägg till övning</button><p class="muted">Ändrar bara detta pass, inte masterpasset.</p></div>
+  <div id="v4-mobility" hidden><div class="extra-form"><div><label>Tid (min)</label><input id="v4MobMin" type="number" min="0" step="0.1" value="${esc(item?.durationMin??'')}"></div><div><label>Snittpuls</label><input id="v4MobHr" type="number" min="0" max="240" value="${esc(item?.avgHr??'')}"></div></div></div>
+  <div id="v4-other" hidden><div class="extra-form"><div><label>Tid (min)</label><input id="v4OtherMin" type="number" min="0" step="0.1" value="${esc(item?.durationMin??'')}"></div><div><label>Snittpuls</label><input id="v4OtherHr" type="number" min="0" max="240" value="${esc(item?.avgHr??'')}"></div></div></div>
+  <div class="extra-form"><div><label>RPE (1–10)</label><input id="v4Rpe" type="number" min="1" max="10" value="${esc(item?.rpe??'')}"></div><div><label>Känsla</label><select id="v4Feeling"><option value="">Välj</option>${[['toppen','Mycket bra'],['bra','Bra'],['okej','Okej'],['trott','Trött'],['sliten','Sliten'],['ont','Smärta/obehag']].map(([k,n])=>`<option value="${k}" ${item?.feeling===k?'selected':''}>${n}</option>`).join('')}</select></div></div>
+  <label>Kommentarer</label><textarea id="v4Notes" rows="3" style="width:100%">${esc(item?.notes||'')}</textarea>
+  <div class="extra-actions"><button class="primary" type="button" onclick="strideV4Save()">Spara pass</button><button class="secondary" type="button" onclick="document.getElementById('extraEditor').innerHTML=''">Avbryt</button></div></div>`;
+  showFields();renderStrengthRows();renderIntervals();root.scrollIntoView({behavior:'smooth',block:'nearest'});
+ };
+ function runFields(item){return `<div><label>Distans (km)</label><input data-v4-run="km" type="number" min="0" step="0.01" value="${esc(item?.distanceKm??'')}"></div><div><label>Tid (min)</label><input data-v4-run="min" type="number" min="0" step="0.1" value="${esc(item?.durationMin??'')}"></div><div><label>Snittpuls</label><input data-v4-run="hr" type="number" min="0" max="240" value="${esc(item?.avgHr??'')}"></div><div><label>Maxpuls</label><input data-v4-run="maxhr" type="number" min="0" max="240" value="${esc(item?.maxHr??'')}"></div><div><label>Höjdmeter (m)</label><input data-v4-run="elev" type="number" min="0" value="${esc(item?.elevation??'')}"></div><div><label>Lutning (%)</label><input data-v4-run="incline" type="number" min="0" max="40" step="0.5" value="${esc(item?.incline??'')}"></div>`}
+ window.strideV4Save=function(){if(!editing)return;const kind=val('v4Kind'),date=editing.date,old=(data.extraSessions?.[date]||[]).find(x=>x.id===editing.id)||{};
+  const numChecked=(raw,label,min=0,max=Infinity)=>{if(raw===''||raw==null)return null;const n=Number(raw);if(!Number.isFinite(n)||n<min||n>max)throw Error('Kontrollera '+label);return n};
+  try{
+   const obj={...old,id:editing.id||makeExtraId(),date,kind,title:val('v4Title')||defaultTitle(kind),saved:true,updatedAt:new Date().toISOString(),rpe:numChecked(val('v4Rpe'),'RPE',1,10),feeling:val('v4Feeling'),notes:val('v4Notes'),source:'manual'};
+   obj.entries=[];obj.intervals=[];obj.distanceKm=null;obj.durationMin=null;obj.avgHr=null;obj.maxHr=null;obj.elevation=null;obj.incline=null;
+   if(kind==='run'||kind==='quality'){
+    const area=byId('v4-'+kind),get=f=>area.querySelector(`[data-v4-run="${f}"]`)?.value.trim()||'';
+    obj.distanceKm=numChecked(get('km'),'distans');obj.durationMin=numChecked(get('min'),'tid');obj.avgHr=numChecked(get('hr'),'snittpuls',0,240);obj.maxHr=numChecked(get('maxhr'),'maxpuls',0,240);obj.elevation=numChecked(get('elev'),'höjdmeter');obj.incline=numChecked(get('incline'),'lutning',0,40);
+    if(kind==='quality'){const n=editing.intervals.length;obj.intervals=Array.from({length:n},(_,i)=>{const pace=area.querySelector(`[data-v4-pace="${i}"]`)?.value.trim()||'',hr=area.querySelector(`[data-v4-ihr="${i}"]`)?.value.trim()||'';if(pace&&!/^\d{1,2}:[0-5]\d$/.test(pace))throw Error('Kontrollera tempo på intervall '+(i+1));return {pace,hr:numChecked(hr,'intervallpuls',0,240)}})}
+   }else if(kind==='strength'){
+    readStrengthRows();obj.workoutType=val('v4Template')||old.workoutType||'extra_strength';
+    obj.entries=editing.entries.filter(e=>e.name.trim()).map(e=>({name:e.name.trim(),exerciseId:e.exerciseId||'ex-'+e.name.trim().toLocaleLowerCase('sv').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-'),prescription:e.prescription||'',kg:numChecked(String(e.kg),'vikt'),reps:numChecked(String(e.reps),'repetitioner'),rpe:numChecked(String(e.rpe),'övnings-RPE',1,10)}));
+    if(!obj.entries.length)throw Error('Lägg till minst en övning');
+    data.exerciseRegistry ||= {};for(const e of obj.entries)if(!data.exerciseRegistry[e.exerciseId])data.exerciseRegistry[e.exerciseId]={name:e.name,aliases:[]};
+   }else if(kind==='mobility'){obj.durationMin=numChecked(val('v4MobMin'),'tid');obj.avgHr=numChecked(val('v4MobHr'),'puls',0,240)}
+   else{obj.durationMin=numChecked(val('v4OtherMin'),'tid');obj.avgHr=numChecked(val('v4OtherHr'),'puls',0,240)}
+   data.extraSessions ||= {};data.extraSessions[date] ||= [];const i=data.extraSessions[date].findIndex(e=>e.id===obj.id);if(i<0)data.extraSessions[date].push(obj);else data.extraSessions[date][i]=obj;
+   persist();renderWeeks();renderProgress();renderStrength();if(typeof renderElevation==='function')renderElevation();openPass(date);
+   const note=byId('extraSavedNotice');if(note)note.textContent='Passet sparat ✓';
+  }catch(e){alert(e.message||'Kunde inte spara passet')}
+ };
+})();
+
 </script></body></html>
